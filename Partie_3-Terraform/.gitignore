@@ -1,0 +1,30 @@
+# .gitignore pour Terraform
+
+# Fichiers Terraform
+terraform.tfvars
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+terraform.plan
+terraform.tfstate.lock.info
+
+# Fichiers de variables sensibles
+*.tfvars
+*.auto.tfvars
+
+# Fichiers d'environnement
+.env
+.env.local
+
+# Clés SSH
+ssh_keys/
+*.pem
+*.p12
+*.key
+
+# Fichiers temporaires
+*.log
+*.tmp
+.cache/

@@ -1,0 +1,194 @@
+---
+# Playbook Ansible : Création d'utilisateurs Linux
+# Objectif : Automatiser la création et configuration des comptes utilisateurs
+
+- name: "Création et configuration des utilisateurs"  # Nom du playbook
+  hosts: all  # S'exécute sur tous les serveurs de l'inventaire
+  become: yes  # Exécute avec privilèges root (sudo)
+  vars_files:
+    - users_data.yaml  # Charge les variables depuis ce fichier
+  
+  vars:
+    log_file: "/var/log/ansible_user_creation.log"  # Fichier pour les logs
+    email_notifications: true  # CORRECTION: Active les emails par défaut (requis par TP)
+  
+  tasks:
+    # 1. Initialisation du journal
+    - name: "Début de l'exécution"  # Nom de la tâche
+      ansible.builtin.lineinfile:  # Module pour manipuler des fichiers ligne par ligne
+        path: "{{ log_file }}"  # Chemin du fichier log
+        line: "[{{ ansible_date_time.iso8601 }}] DEBUT - Création utilisateurs"  # Ligne à écrire
+        create: yes  # Crée le fichier s'il n'existe pas
+      tags: [log]  # Permet d'exécuter seulement certaines tâches
+    
+    # 2. Création du groupe principal
+    - name: "Créer le groupe {{ group_name }}"  # Nom dynamique avec variable
+      ansible.builtin.group:  # Module pour gérer les groupes Linux
+        name: "{{ group_name }}"  # Nom du groupe (depuis users_data.yaml)
+        state: present  # S'assure que le groupe existe
+      tags: [group]  # Tag pour exécution sélective
+    
+    # 3. Traitement de chaque utilisateur
+    - name: "Traiter les utilisateurs"  # Tâche qui boucle sur tous les utilisateurs
+      loop: "{{ users }}"  # Boucle sur la liste 'users' du fichier YAML
+      loop_control:
+        loop_var: user  # Nom de variable pour l'utilisateur courant
+      tags: [users]  # Tag spécifique
+      
+      block:  # Bloc qui regroupe plusieurs tâches
+        # 3.1 Vérification/installation du shell
+        - name: "Vérifier le shell {{ user.preferred_shell }}"  # Vérifie si shell existe
+          ansible.builtin.command:  # Module pour exécuter des commandes shell
+            cmd: "which {{ user.preferred_shell.split('/')[-1] }}"  # Commande qui cherche le binaire
+          register: shell_check  # Stocke le résultat dans variable 'shell_check'
+          ignore_errors: yes  # Continue même si commande échoue (shell non trouvé)
+        
+        - name: "Installer le shell si nécessaire"  # Installe si shell_check a échoué
+          ansible.builtin.package:  # Module générique pour installer des paquets
+            name: "{{ user.preferred_shell.split('/')[-1] }}"  # Nom du paquet (ex: 'zsh')
+            state: present  # S'assure que le paquet est installé
+          when: shell_check.rc != 0  # Condition: seulement si shell non trouvé (rc = return code)
+          register: shell_install  # Stocke résultat installation
+          ignore_errors: yes  # Continue même si échec installation
+        
+        # 3.2 Déterminer le shell final
+        - name: "Définir le shell final"  # Définit quelle shell utiliser
+          ansible.builtin.set_fact:  # Module pour définir des variables
+            final_shell: >-  # Variable 'final_shell' avec logique conditionnelle
+              {% if shell_check.rc == 0 %}  # Si shell existe déjà
+                {{ user.preferred_shell }}  # Utiliser le shell préféré
+              {% elif shell_install is succeeded %}  # Si installation réussie
+                {{ user.preferred_shell }}  # Utiliser le shell préféré
+              {% else %}  # Sinon (échec installation)
+                /bin/bash  # Fallback vers bash
+              {% endif %}
+        
+        # 3.3 Création de l'utilisateur
+        - name: "Créer l'utilisateur {{ user.username }}"  # Crée l'utilisateur système
+          ansible.builtin.user:  # Module pour gérer les utilisateurs Linux
+            name: "{{ user.username }}"  # Nom d'utilisateur
+            comment: "{{ user.full_name }}"  # Nom complet (champ GECOS)
+            shell: "{{ final_shell }}"  # Shell déterminé précédemment
+            groups: "{{ group_name }},sudo"  # Groupes d'appartenance
+            append: yes  # Ajoute aux groupes sans écraser les autres
+            create_home: yes  # Crée le répertoire /home/username
+            state: present  # S'assure que l'utilisateur existe
+          register: user_created  # Stocke si utilisateur créé ou modifié
+        
+        # 3.4 Informations de contact
+        - name: "Configurer les contacts"  # Ajoute téléphone et email
+          ansible.builtin.shell:  # Module shell pour commande spécifique
+            cmd: "chfn -o 'Tel: {{ user.phone }}' -r '{{ user.email }}' {{ user.username }}"  # Modifie infos utilisateur
+          when: user_created.changed  # Seulement si utilisateur vient d'être créé
+          ignore_errors: yes  # Continue même si échec
+        
+        # 3.5 Configuration du mot de passe
+        - name: "Hasher le mot de passe"  # Hash le mot de passe en SHA-512
+          ansible.builtin.shell:
+            # CORRECTION: Utilisation de Python3 pour compatibilité cross-platform
+            cmd: "python3 -c 'import crypt; print(crypt.crypt(\"{{ user.default_password }}\", crypt.mksalt(crypt.METHOD_SHA512)))'"
+          register: password_hash  # Stocke le hash généré
+          no_log: true  # IMPORTANT: n'affiche pas le mot de passe dans les logs
+        
+        - name: "Définir le mot de passe"  # Applique le mot de passe hashé
+          ansible.builtin.user:
+            name: "{{ user.username }}"  # Utilisateur cible
+            password: "{{ password_hash.stdout }}"  # Hash du mot de passe
+          when: user_created.changed  # Seulement si nouvel utilisateur
+        
+        # 3.6 Forcer changement mot de passe
+        - name: "Forcer changement à première connexion"  # Expire immédiatement le mot de passe
+          ansible.builtin.shell:
+            cmd: "chage -d 0 {{ user.username }}"  # -d 0 = date dernière modification = epoch (1970)
+          when: user_created.changed  # Seulement si nouvel utilisateur
+        
+        # 3.7 Fichier de bienvenue
+        - name: "Créer WELCOME.txt"  # Crée fichier de bienvenue personnalisé
+          ansible.builtin.template:  # Module template Jinja2
+            src: "templates/welcome.j2"  # Fichier template source
+            dest: "/home/{{ user.username }}/WELCOME.txt"  # Destination sur le serveur
+            owner: "{{ user.username }}"  # Propriétaire = l'utilisateur
+            group: "{{ user.username }}"  # Groupe = l'utilisateur
+            mode: '0644'  # Permissions: rw-r--r-- (utilisateur: lecture/écriture, autres: lecture)
+        
+        # 3.8 Configuration .bashrc
+        - name: "Configurer .bashrc"  # Modifie .bashrc pour afficher message
+          ansible.builtin.blockinfile:  # Module pour insérer bloc dans fichier
+            path: "/home/{{ user.username }}/.bashrc"  # Fichier .bashrc de l'utilisateur
+            block: |  # Bloc à insérer
+              # Message de bienvenue
+              if [[ -f ~/WELCOME.txt ]]; then  # Si fichier existe
+                  echo ""  # Ligne vide
+                  cat ~/WELCOME.txt  # Affiche contenu
+                  echo ""  # Ligne vide
+              fi
+            marker: "# ANSIBLE - WELCOME MESSAGE"  # Marqueur pour gérer le bloc
+        
+        # 3.9 Quotas disque
+        - name: "Configurer quota ({{ disk_quota_gb }} Go)"  # Configure quotas disque
+          ansible.builtin.shell:
+            cmd: "setquota -u {{ user.username }} 0 {{ disk_quota_gb * 1048576 }} 0 {{ disk_quota_gb * 1048576 }} /home"  # setquota user soft hard
+          when: "'usrquota' in (lookup('file', '/proc/mounts') | regex_search('.*usrquota.*'))"  # Condition: quotas activés sur /home
+          ignore_errors: yes  # Continue même si échec (quota non supporté)
+        
+        # 3.10 Limites mémoire
+        - name: "Configurer limites mémoire"  # Configure limites mémoire via systemd
+          block:  # Bloc pour plusieurs tâches liées
+            - name: "Calculer la limite"  # Calcule 20% de la RAM
+              ansible.builtin.shell:
+                cmd: "echo $(($(grep MemTotal /proc/meminfo | awk '{print $2}') * {{ memory_percent_limit }} / 100))"  # RAM totale * 20 / 100
+              register: limit_ram  # Stocke résultat
+            
+            - name: "Créer slice systemd"  # Crée répertoire pour slice systemd
+              ansible.builtin.file:
+                path: "/etc/systemd/system/user-{{ user.username }}.slice.d"  # Chemin slice
+                state: directory  # Crée répertoire
+            
+            - name: "Configurer limites"  # Crée fichier configuration
+              ansible.builtin.copy:
+                dest: "/etc/systemd/system/user-{{ user.username }}.slice.d/limits.conf"  # Fichier config
+                content: |  # Contenu fichier
+                  [Slice]
+                  MemoryMax={{ limit_ram.stdout }}K  # Limite mémoire en Ko
+                mode: '0644'  # Permissions
+            
+            - name: "Recharger systemd"  # Applique changements
+              ansible.builtin.systemd:
+                daemon_reload: yes  # Recharge configuration systemd
+          when: ansible_service_mgr == "systemd"  # Condition: systemd présent
+          ignore_errors: yes  # Continue même si échec
+        
+        # 3.11 Journalisation
+        - name: "Journaliser la création"  # Log succès création
+          ansible.builtin.lineinfile:
+            path: "{{ log_file }}"  # Fichier log
+            line: "[{{ ansible_date_time.iso8601 }}] Utilisateur {{ user.username }} créé"  # Message
+      
+      rescue:  # Section exécutée en cas d'erreur dans le bloc
+        - name: "Journaliser l'erreur"  # Log échec
+          ansible.builtin.lineinfile:
+            path: "{{ log_file }}"
+            line: "[{{ ansible_date_time.iso8601 }}] ERREUR - {{ user.username }}"
+    
+    # 4. Restriction commande 'su'
+    - name: "Restreindre la commande 'su'"  # Empêche usage de 'su' pour le groupe
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/su  # Fichier configuration PAM pour su
+        regexp: '^auth\s+required\s+pam_wheel\.so'  # CORRECTION: Recherche ligne existante
+        line: "auth required pam_wheel.so group={{ group_name }}"  # CORRECTION: Utilise pam_wheel au lieu de pam_deny
+        state: present  # S'assure que ligne existe
+        insertafter: '^#%PAM'  # CORRECTION: Positionne après le commentaire header
+      tags: [security]  # Tag sécurité
+    
+    # 5. Fin d'exécution
+    - name: "Fin de l'exécution"  # Log fin d'exécution
+      ansible.builtin.lineinfile:
+        path: "{{ log_file }}"
+        line: "[{{ ansible_date_time.iso8601 }}] FIN - {{ users | length }} utilisateurs"  # Nombre utilisateurs
+      tags: [log]  # Tag log
+  
+  post_tasks:  # Tâches exécutées après tâches principales
+    # 6. Envoi des emails (optionnel)
+    - name: "Envoyer les emails"  # Inclut playbook emails
+      ansible.builtin.include_playbook: send_email.yml  # Inclusion autre playbook
+      when: email_notifications | bool  # Condition: seulement si email_notifications = true

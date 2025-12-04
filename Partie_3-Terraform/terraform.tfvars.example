@@ -1,0 +1,24 @@
+# terraform.tfvars.example
+# Fichier d'exemple pour les variables Terraform
+# COPIEZ ce fichier en terraform.tfvars et remplissez les valeurs
+
+# Token DigitalOcean (obligatoire)
+# Obtenez-le depuis : https://cloud.digitalocean.com/account/api/tokens
+do_token = "votre_token_api_digitalocean_ici"
+
+# Configuration du VPS
+droplet_name = "vps-tp-inf-361"
+region       = "fra1"  # Francfort, Allemagne
+droplet_size = "s-1vcpu-1gb"  # 1 CPU, 1 Go RAM
+image        = "ubuntu-22-04-x64"  # Ubuntu 22.04 LTS
+
+# Clés SSH (optionnel)
+# Liste des noms de clés SSH déjà uploadées sur DigitalOcean
+# ssh_keys = ["nom_de_votre_cle_ssh"]
+
+# Chemins des fichiers (par défaut, pointe vers la Partie 1)
+users_file_path = "../Partie_1-Script_Bash/users.txt"
+script_path     = "../Partie_1-Script_Bash/create_users.sh"
+
+# Nom du groupe
+group_name = "students-inf-361"

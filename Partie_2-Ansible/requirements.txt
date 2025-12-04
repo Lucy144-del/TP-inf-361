@@ -1,0 +1,13 @@
+# Dépendances Python nécessaires pour ce projet Ansible
+# Installer avec: pip install -r requirements.txt
+
+# Ansible core - framework d'automatisation
+ansible>=2.14.0  # Version minimale 2.14.0
+
+# Collections Ansible officielles
+ansible.posix>=1.5.0  # Pour tâches POSIX/Linux (utilisateurs, groupes, permissions)
+community.general>=7.0.0  # Modules divers dont 'mail' pour envoi emails
+
+# Outils de développement (optionnels - pour validation code)
+yamllint>=1.30.0  # Validation syntaxe YAML
+ansible-lint>=6.17.0  # Analyse playbooks Ansible (bonnes pratiques)

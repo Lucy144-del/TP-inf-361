@@ -1,0 +1,8 @@
+# users.txt
+# Format: username;password;full_name;phone;email;shell
+alice;Pass123!;Alice Dupont;+33612345678;alice@email.com;/bin/bash
+bob;Secure456@;Bob Martin;+33787654321;bob@mail.fr;/bin/zsh
+charlie;Test789!;Charlie Brown;+33611223344;charlie@domain.com;/bin/fish
+dave;Welcome123;Dave Wilson;+33123456789;dave@test.org;/bin/bash
+eva;EvaPass123;Eva Green;+33698765432;eva@green.com;/bin/bash
+frank;Frank456!;Frank Miller;+33712345678;frank@miller.com;/bin/bash

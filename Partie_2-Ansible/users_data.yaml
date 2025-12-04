@@ -1,0 +1,141 @@
+# =============================================================================
+# FICHIER: users_data.yaml
+# OBJECTIF: Définir les données des utilisateurs et la configuration système
+#           pour l'automatisation avec Ansible.
+# DESCRIPTION: Fichier de variables YAML structuré contenant les informations
+#              des utilisateurs et les paramètres de configuration système.
+# FORMAT: YAML (Yet Another Markup Language) - Indentation de 2 espaces
+# USAGE: Chargé automatiquement par les playbooks Ansible via vars_files
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SECTION: UTILISATEURS
+# DESCRIPTION: Liste des comptes utilisateurs à créer sur le système.
+# FORMAT: Liste de dictionnaires, chaque dictionnaire représentant un utilisateur.
+# NOTE: L'ordre de création suit l'ordre de la liste.
+# -----------------------------------------------------------------------------
+users:
+  
+  # -------------------------------------------------------------------------
+  # UTILISATEUR 1: Alice Dupont
+  # DESCRIPTION: Exemple d'utilisateur avec shell bash (défaut)
+  # -------------------------------------------------------------------------
+  - username: "alice"
+    
+    default_password: "Pass123!"
+    
+    # NOM COMPLET: Nom complet de l'utilisateur
+    # UTILISATION: Affiché dans finger, w, who, etc.
+    # STOCKAGE: Champ GECOS dans /etc/passwd
+    full_name: "Alice Dupont"
+    
+    # TÉLÉPHONE: Numéro de téléphone de contact
+    # STOCKAGE: Champ GECOS optionnel via chfn
+    # FORMAT: Format international recommandé
+    phone: "+33612345678"
+    
+    # EMAIL: Adresse email de contact
+    # UTILISATION: Pour les notifications système et communication
+    # STOCKAGE: Champ GECOS optionnel via chfn
+    email: "alice@email.com"
+    
+    # SHELL PRÉFÉRÉ: Shell de connexion par défaut
+    # COMPORTEMENT: Installé automatiquement s'il n'existe pas
+    # FALLBACK: /bin/bash si installation impossible
+    # OPTIONS: /bin/bash, /bin/zsh, /bin/fish, /bin/dash, etc.
+    preferred_shell: "/bin/bash"
+  
+  # -------------------------------------------------------------------------
+  # UTILISATEUR 2: Bob Martin
+  # DESCRIPTION: Exemple d'utilisateur avec shell zsh (nécessite installation)
+  # -------------------------------------------------------------------------
+  - username: "bob"
+    
+    # CORRECTION: Changé 'password' en 'default_password' pour correspondre au format du TP
+    default_password: "Secure456@"  # Était: password: "Secure456@"
+    
+    # NOM COMPLET: Prénom et nom
+    full_name: "Bob Martin"
+    
+    # TÉLÉPHONE: Format international français
+    phone: "+33787654321"
+    
+    # EMAIL: Adresse personnelle
+    email: "bob@mail.fr"
+    
+    # SHELL PRÉFÉRÉ: Zsh (Z Shell)
+    # NOTE: Non installé par défaut sur Ubuntu/Debian
+    # INSTALLATION: Automatique via le playbook Ansible
+    preferred_shell: "/bin/zsh"
+  
+  # -------------------------------------------------------------------------
+  # UTILISATEUR 3: Charlie Brown
+  # DESCRIPTION: Exemple d'utilisateur avec shell fish (nécessite installation)
+  # -------------------------------------------------------------------------
+  - username: "charlie"
+    
+    # CORRECTION: Changé 'password' en 'default_password' pour correspondre au format du TP
+    default_password: "Test789!"  # Était: password: "Test789!"
+    
+    # NOM COMPLET: Format occidental standard
+    full_name: "Charlie Brown"
+    
+    # TÉLÉPHONE: Numéro français
+    phone: "+33611223344"
+    
+    # EMAIL: Adresse avec domaine personnalisé
+    email: "charlie@domain.com"
+    
+    # SHELL PRÉFÉRÉ: Fish (Friendly Interactive SHell)
+    # CARACTÉRISTIQUES: Auto-suggestions, coloration syntaxique
+    # INSTALLATION: Automatique via le playbook Ansible
+    preferred_shell: "/bin/fish"
+
+# -----------------------------------------------------------------------------
+# SECTION: CONFIGURATION SYSTÈME
+# DESCRIPTION: Paramètres globaux applicables à tous les utilisateurs
+# -----------------------------------------------------------------------------
+
+# NOM DU GROUPE: Groupe principal auquel appartiennent tous les utilisateurs
+# UTILISATION: Gestion simplifiée des permissions et politiques
+# CONVENTION: Nom descriptif incluant le cours et l'année
+group_name: "students-inf-361"
+
+# QUOTA DISQUE: Limite d'espace de stockage par utilisateur
+# UNITÉ: Gigaoctets (Go)
+# CALCUL: 15 Go = 15 * 1024 * 1024 blocs de 1 Ko
+# APPLICATION: Via setquota sur la partition /home
+# PRÉREQUIS: Système de fichiers monté avec option 'usrquota'
+disk_quota_gb: 15
+
+# LIMITE MÉMOIRE: Pourcentage maximum de RAM utilisable par utilisateur
+# UNITÉ: Pourcentage de la RAM totale
+# APPLICATION: Via systemd slices (cgroups)
+# COMPORTEMENT: Limite douce à 90% de la limite dure pour prévenir les OOM
+# PRÉREQUIS: Systemd actif sur le système
+memory_percent_limit: 20
+
+# PORT SSH: Port d'écoute du service SSH
+# DÉFAUT: 22 (port standard SSH)
+# SÉCURITÉ: Recommandé de changer en environnement de production
+# UTILISATION: Pour les instructions de connexion dans les emails
+# NOTE: Doit correspondre à la configuration réelle du serveur SSH
+ssh_port: 22
+
+# -----------------------------------------------------------------------------
+# NOTES D'UTILISATION:
+# -----------------------------------------------------------------------------
+# 1. MODIFICATION: Ajouter/supprimer des utilisateurs en suivant le même format
+# 2. SÉCURITÉ: Les mots de passe sont hashés avant stockage (SHA-512)
+# 3. PERSONNALISATION: Adapter les valeurs selon l'environnement cible
+# 4. VALIDATION: Vérifier la syntaxe YAML avec: yamllint users_data.yaml
+# 5. VERSIONING: Ce fichier doit être versionné avec le reste du projet
+# 
+# EXEMPLE D'AJOUT D'UTILISATEUR:
+#   - username: "nouvel_utilisateur"
+#     default_password: "NouveauPass123!"  # NOTE: Utiliser 'default_password'
+#     full_name: "Nouvel Utilisateur"
+#     phone: "+33699999999"
+#     email: "nouvel@email.com"
+#     preferred_shell: "/bin/bash"
+# -----------------------------------------------------------------------------

@@ -1,0 +1,89 @@
+{# templates/welcome.j2 #}
+{# Template Jinja2 pour le fichier de bienvenue #}
+{# Les variables sont injectées par Ansible #}
+
+==================================================
+                    BIENVENUE
+==================================================
+
+Cher(ère) {{ full_name }},
+
+Votre compte utilisateur a été créé avec succès sur le serveur :
+**{{ inventory_hostname }}**
+
+--------------------------------------------------
+          INFORMATIONS DE VOTRE COMPTE
+--------------------------------------------------
+
+* **Nom d'utilisateur** : {{ username }}
+* **Shell par défaut** : {{ final_shell }}
+* **Adresse email** : {{ email }}
+* **Téléphone** : {{ phone }}
+* **Répertoire personnel** : /home/{{ username }}
+* **Quota disque** : {{ disk_quota_gb }} Go maximum
+* **Groupe principal** : {{ group_name }}
+
+--------------------------------------------------
+            INSTRUCTIONS IMPORTANTES
+--------------------------------------------------
+
+1. **CHANGEMENT DE MOT DE PASSE OBLIGATOIRE**
+   À votre première connexion, vous devrez immédiatement
+   changer votre mot de passe initial.
+
+2. **ACCÈS SUDO**
+   Vous avez les privilèges sudo, mais l'utilisation de la
+   commande 'su' est restreinte pour des raisons de sécurité.
+
+3. **LIMITES DE RESSOURCES**
+   - Espace disque : {{ disk_quota_gb }} Go maximum
+   - Mémoire RAM : 20% maximum de la RAM système
+
+4. **SÉCURITÉ**
+   - Votre mot de passe est stocké de manière cryptée (SHA-512)
+   - Les sessions sont automatiquement journalisées
+
+--------------------------------------------------
+                COMMANDES UTILES
+--------------------------------------------------
+
+# Vérifier votre quota disque
+quota -s
+
+# Vérifier l'utilisation de votre répertoire
+du -sh ~
+
+# Changer votre shell (si autorisé)
+chsh -s {{ final_shell }}
+
+# Voir les groupes auxquels vous appartenez
+groups
+
+# Vérifier vos permissions sudo
+sudo -l
+
+--------------------------------------------------
+                  CONNEXION SSH
+--------------------------------------------------
+
+Pour vous connecter au serveur depuis un terminal :
+
+ssh {{ username }}@{{ ansible_default_ipv4.address }}
+
+Si le port SSH a été modifié, utilisez :
+ssh {{ username }}@{{ ansible_default_ipv4.address }} -p {{ ssh_port | default(22) }}
+
+--------------------------------------------------
+             SUPPORT ET ASSISTANCE
+--------------------------------------------------
+
+Pour toute question ou problème technique, contactez :
+- L'administrateur système
+- Par email : admin@{{ inventory_hostname }}
+- Par téléphone : [numéro de support]
+
+Créé le : {{ ansible_date_time.date }} à {{ ansible_date_time.time }}
+
+==================================================
+    SERVEUR {{ inventory_hostname | upper }}
+==================================================
