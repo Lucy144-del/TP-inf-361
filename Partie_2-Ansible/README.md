@@ -67,7 +67,7 @@ ssh-keygen -t rsa -b 4096
 # Copier la clé publique sur le serveur
 ssh-copy-id root@vps.monserveur.com
 
-⚙️ Configuration
+. Configuration
 1. Modifier l'inventaire (inventory.ini)
 ini
 
@@ -160,7 +160,7 @@ ansible-playbook -i inventory.ini create_users.yml --limit vps.monserveur.com
 # Définir des variables en ligne de commande
 ansible-playbook -i inventory.ini create_users.yml -e "group_name=students-test"
 
-🔍 Fonctionnalités détaillées
+.  Fonctionnalités détaillées
 1. Gestion des utilisateurs
 
     Création : Utilise le module ansible.builtin.user
@@ -209,7 +209,7 @@ ansible-playbook -i inventory.ini create_users.yml -e "group_name=students-test"
 
     Sécurité : Utilisation de STARTTLS
 
-🧪 Tests et validation
+.  Tests et validation
 1. Tests unitaires
 bash
 
@@ -253,7 +253,7 @@ sudo whoami  # Doit retourner "root"
 # Tester su
 su bob  # Doit échouer avec message d'authentification
 
-🔧 Dépannage
+.  Dépannage
 Problèmes courants
 1. "Authentication failed"
 bash
@@ -308,7 +308,7 @@ ansible all -i inventory.ini -m shell -a "mount | grep quota"
 # Activer les quotas si nécessaire
 ansible all -i inventory.ini -m shell -a "quotacheck -cug /home && quotaon /home"
 
-🔒 Sécurité
+.  Sécurité
 Bonnes pratiques implémentées
 
     Mots de passe :
@@ -346,7 +346,7 @@ ansible-vault encrypt_string 'Pass123!' --name 'password'
 
     Tests automatisés avec Molecule
 
-❓ FAQ
+.  FAQ
 Q1 : Puis-je utiliser ce playbook sur plusieurs serveurs ?
 
 R : Oui, ajoutez simplement les serveurs dans inventory.ini :
